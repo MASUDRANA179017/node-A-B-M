@@ -150,50 +150,7 @@ const HOST = 'localhost';
 //     Dir: [Getter/Setter],
 //     opendir: [Getter/Setter],
 //     opendirSync: [Getter/Setter],
-//     F_OK: 0,
-//     R_OK: 4,
-//     W_OK: 2,
-//     X_OK: 1,
-//     constants: [Object: null prototype] {
-//       UV_FS_SYMLINK_DIR: 1,
-//       UV_FS_SYMLINK_JUNCTION: 2,
-//       O_RDONLY: 0,
-//       O_WRONLY: 1,
-//       O_RDWR: 2,
-//       UV_DIRENT_UNKNOWN: 0,
-//       UV_DIRENT_FILE: 1,
-//       UV_DIRENT_DIR: 2,
-//       UV_DIRENT_LINK: 3,
-//       UV_DIRENT_FIFO: 4,
-//       UV_DIRENT_SOCKET: 5,
-//       UV_DIRENT_CHAR: 6,
-//       UV_DIRENT_BLOCK: 7,
-//       EXTENSIONLESS_FORMAT_JAVASCRIPT: 0,
-//       EXTENSIONLESS_FORMAT_WASM: 1,
-//       S_IFMT: 61440,
-//       S_IFREG: 32768,
-//       S_IFDIR: 16384,
-//       S_IFCHR: 8192,
-//       S_IFIFO: 4096,
-//       S_IFLNK: 40960,
-//       O_CREAT: 256,
-//       O_EXCL: 1024,
-//       UV_FS_O_FILEMAP: 536870912,
-//       O_TRUNC: 512,
-//       O_APPEND: 8,
-//       S_IRUSR: 256,
-//       S_IWUSR: 128,
-//       F_OK: 0,
-//       R_OK: 4,
-//       W_OK: 2,
-//       X_OK: 1,
-//       UV_FS_COPYFILE_EXCL: 1,
-//       COPYFILE_EXCL: 1,
-//       UV_FS_COPYFILE_FICLONE: 2,
-//       COPYFILE_FICLONE: 2,
-//       UV_FS_COPYFILE_FICLONE_FORCE: 4,
-//       COPYFILE_FICLONE_FORCE: 4
-//     },
+//    
 //     promises: [Getter]
 //   }
 
@@ -207,47 +164,105 @@ class FileEmitter extends EventEmitter {}
 // fileEmitter object constructor for FileEmitter
 const fileEmitter = new FileEmitter();
 
-const server = net.createServer((socket) => {
-    console.log(server);
-    
-    console.log('Client connected.');
+// function createServer(connectionListener?: (socket: net.Socket) => void): net.Server (+1 overload)
+// Creates a new TCP or IPC server.
 
+// If allowHalfOpen is set to true, when the other end of the socket signals the end of transmission, the server will only send back the end of transmission when socket.end() is explicitly called. For example, in the context of TCP, when a FIN packed is received, a FIN packed is sent back only when socket.end() is explicitly called. Until then the connection is half-closed (non-readable but still writable). See 'end' event and RFC 1122 (section 4.2.2.13) for more information.
+
+// If pauseOnConnect is set to true, then the socket associated with each incoming connection will be paused, and no data will be read from its handle. This allows connections to be passed between processes without any data being read by the original process. To begin reading data from a paused socket, call socket.resume().
+
+// The server can be a TCP server or an IPC server, depending on what it listen() to. Here is an example of a TCP echo server which listens for connections on port 8124:
+// import net from 'node:net';
+// const server = net.createServer((c) => {
+//   // 'connection' listener.
+//   console.log('client connected');
+//   c.on('end', () => {
+//     console.log('client disconnected');
+//   });
+//   c.write('hello\r\n');
+//   c.pipe(c);
+// });
+// server.on('error', (err) => {
+//   throw err;
+// });
+// server.listen(8124, () => {
+//   console.log('server bound');
+// });
+// Test this by using telnet:
+// telnet localhost 8124
+// To listen on the socket /tmp/echo.sock:
+// server.listen('/tmp/echo.sock', () => {
+//   console.log('server bound');
+// });
+// Use nc to connect to a Unix domain socket server:
+// nc -U /tmp/echo.sock
+// @since — v0.5.0
+// @param connectionListener — Automatically set as a listener for the 'connection' event.
+
+// console.log("T: This is a server");
+
+// A server is created using net.createServer. It listens for client connections (e.g., programs trying to connect to it).
+
+const server = net.createServer((socket) => {
+    console.log("this is server for under socket" + server);
+    
+    //console.log('Client connected.');
+
+
+    // fs createreadStream method make data flow with packet format 
     const fileStream = fs.createReadStream('example.txt');
     let totalBytesSent = 0;
 
-
+    // on connect make data flow with packet format to send packets to the server socket in chunk by chunk size
     fileStream.on('data', (chunk) => {
+        // total size of the packet in stored totalBytesSent variable
         totalBytesSent += chunk.length;
+
+        // Send the chunk to the client socket in chunk by chunk size and send the packet to the server socket
         console.log(`Sending chunk of size: ${chunk.length}`);
+        // fs emit event fileEmitter.emit is triggered (presumably to notify other parts of the app) packet to server socket and send the packet to the server socket in chunk by chunk size
         fileEmitter.emit('chunkRead', chunk.length, totalBytesSent);
     });
 
+    // Sending Data to Client:
     fileStream.pipe(socket);
+
+    // When the file transfer is complete or End of File Transfer or When the file is fully sent: A "File transfer complete." message is logged and sent to the client. The connection to the client is closed.
 
     fileStream.on('end', () => {
         console.log('File transfer complete.');
         fileEmitter.emit('transferComplete', totalBytesSent);
 
+        // Send the completion message to the client socket. When the message is sent, the connection to the client is closed.
         socket.write('File transfer complete!', () => {
             socket.end(); 
         });
     });
 
+
+    console.log("ok NO MORE TO DAY");
+    
+
+
+    // Error handling: If there is an error while reading the file or while sending the data to the client: An error message is logged and the connection to the client is closed.
     fileStream.on('error', (err) => {
         console.error('File stream error:', err.message);
         socket.end(); 
     });
 
+    // When the client disconnects: A "Client disconnected." message is logged and the connection to the client is closed.
     socket.on('close', () => {
         console.log('Client disconnected.');
     });
 
+    // it recheck for socket error on this server client connection  
     socket.on('error', (err) => {
         console.error('Socket error:', err.message);
     });
 });
 
 
+//This method is used to start the server and make it listen on a specific PORT and HOST.
 server.listen(PORT, HOST, () => {
     console.log(`Server listening on ${HOST}:${PORT}`);
 });
