@@ -1,7 +1,9 @@
 // events = ঘটনা
 // which refers to anything that happens
 
-const EventEmitter = require("events")
+// const EventEmitter = require("events")
+const EventEmitter = require("./event.js")
+
 class Emitter extends EventEmitter {}
 
 const MyEmitter = new Emitter();
@@ -24,3 +26,8 @@ MyEmitter.once("abc", () => {
 MyEmitter.emit("abc");
 MyEmitter.emit("abc");
 
+
+
+
+
+// HOW TO CODE YOUR OWN EVENT EMITTER
