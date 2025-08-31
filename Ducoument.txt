@@ -1,0 +1,28 @@
+Exam Task: Build a Node.js File Streaming Server with Event Notifications
+Scenario:
+You are building a Node.js application that serves a file to clients over a network. The application should handle file streaming, monitor the progress of the stream using events, and notify the client when the transfer is complete.
+Requirements:
+1. Buffer Usage:
+  1.1 Read a file in chunks using Buffer.
+  1.2 Send these chunks to the client over a TCP connection.
+2. Stream Usage:
+ 2.1 Use a Readable stream to read the file and pipe it to the network connection.
+3. EventEmitter:
+ 3.1 Create a custom EventEmitter to:
+   3.1.1 Emit an event when each chunk is read.
+   3.1.2 Emit a final event when the file has been completely sent.
+4. Network:
+   4.1 Create a TCP server using Node.js net module.
+   4.2 The server listens on port 3000.
+   4.3 When a client connects, send the contents of the file example.txt to the client.
+
+Expected Behavior:
+
+1. When the server starts, it should wait for client connections.
+2. When a client connects:
+  2.1 The server reads the file example.txt in chunks.
+  2.2 Each chunk is sent to the client.
+  2.3 Progress is logged to the console on the server side.
+3. When the transfer is complete:
+  3.1 Notify the client with a message: File transfer complete!
+  3.2 Close the connection.
